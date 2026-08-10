@@ -1,0 +1,71 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: arxiv-radar-backend
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/arxivradar}
+    username: ${DB_USER:arxivradar}
+    password: ${DB_PASSWORD:arxivradar}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 5000
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 3s
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 4
+          min-idle: 0
+
+  jackson:
+    default-property-inclusion: non_null
+    time-zone: Asia/Shanghai
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  global-config:
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when_authorized
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: alpha
+
+logging:
+  level:
+    com.arxivradar: DEBUG
+    org.springframework.web: INFO
+    com.baomidou.mybatisplus: INFO
+
+arxiv:
+  max-results: 50
