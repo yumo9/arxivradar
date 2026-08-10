@@ -5,6 +5,9 @@
 FROM docker.xuanyuan.run/library/maven:3.9-eclipse-temurin-17 AS build
 WORKDIR /workspace
 
+# Maven 走阿里云镜像,依赖下载快 10 倍以上
+COPY docker/maven-settings.xml /root/.m2/settings.xml
+
 # 先只拷贝 pom.xml,利用 Docker layer 缓存,依赖不变就不重下
 COPY pom.xml .
 RUN mvn -B -q dependency:go-offline
@@ -20,8 +23,9 @@ RUN mvn -B -q -DskipTests package && \
 FROM docker.xuanyuan.run/library/eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
-# 装 curl (健康检查) 和 tzdata (时区)
-RUN apk add --no-cache curl tzdata && \
+# 换成阿里 alpine 源,apk 快 10 倍;装 curl (健康检查) 和 tzdata (时区)
+RUN sed -i 's|dl-cdn.alpinelinux.org|mirrors.aliyun.com|g' /etc/apk/repositories && \
+    apk add --no-cache curl tzdata && \
     cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
     echo "Asia/Shanghai" > /etc/timezone
 
