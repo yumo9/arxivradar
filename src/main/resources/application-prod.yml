@@ -1,0 +1,56 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 8
+      minimum-idle: 2
+      connection-timeout: 5000
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD}
+      timeout: 3s
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 4
+          min-idle: 0
+
+# 生产日志:仅 INFO,不打 SQL
+logging:
+  level:
+    com.arxivradar: INFO
+    org.springframework.web: WARN
+    com.baomidou.mybatisplus: WARN
+
+# 生产 Actuator:health/metrics/info, 不暴露敏感端点
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: never
+  info:
+    env:
+      enabled: false
+
+# 生产 Swagger:默认开启, 想关就把 enabled 改成 false
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
+# CORS 白名单(逗号分隔),支持通配符如 https://*.surge.sh
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}

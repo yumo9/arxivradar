@@ -1,0 +1,77 @@
+services:
+  postgres:
+    # 走轩辕镜像加速
+    image: docker.xuanyuan.run/library/postgres:16-alpine
+    container_name: arxivradar-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-arxivradar}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:-arxivradar}
+    # 只监听 127.0.0.1,禁止公网访问 5432
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - arxivradar_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-arxivradar} -d ${DB_NAME:-arxivradar}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - arxivradar-net
+
+  redis:
+    image: docker.xuanyuan.run/library/redis:7-alpine
+    container_name: arxivradar-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --requirepass ${REDIS_PASSWORD}
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - arxivradar_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - arxivradar-net
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: arxivradar-backend:latest
+    container_name: arxivradar-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 8080
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-arxivradar}
+      DB_USER: ${DB_USER:-arxivradar}
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,https://*.surge.sh}
+    ports:
+      - "8080:8080"
+    networks:
+      - arxivradar-net
+
+volumes:
+  arxivradar_pg_data:
+  arxivradar_redis_data:
+
+networks:
+  arxivradar-net:
+    driver: bridge
